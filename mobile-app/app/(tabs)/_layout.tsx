@@ -1,5 +1,7 @@
+import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
+import { Text } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -22,7 +24,14 @@ export default function TabLayout() {
         name="sandwich"
         options={{
           title: 'Sandwich',
-          tabBarIcon: ({ color }) => <FontAwesome size={28} name="cog" color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome size={28} name="coffee" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="camera"
+        options={{
+          title: 'Camera',
+          tabBarIcon: ({ color }) => <FontAwesome size={28} name="camera" color={color} />,
         }}
       />
     </Tabs>
