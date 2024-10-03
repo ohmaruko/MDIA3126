@@ -1,14 +1,30 @@
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { useState } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as MediaLibrary from 'expo-media-library';
+import { useState, useRef, useEffect } from 'react';
+import { Button, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function App() {
-  const [facing, setFacing] = useState<CameraType>('back');
+  // @ts-ignore
+  const cameraRef = useRef<CameraView>(undefined);
   const [permission, requestPermission] = useCameraPermissions();
+  const [photo, setPhoto] = useState();
+  const [hasMediaLibraryPermissions, setMediaLibraryPermissions] = useState();
+
+  useEffect(() => {
+    async function getMediaPermissions() {
+      const mediaLibraryPermission = await MediaLibrary.requestPermissionsAsync();
+      //@ts-ignore
+      setMediaLibraryPermissions(mediaLibraryPermission.status === "granted");
+    }
+
+    getMediaPermissions();
+  }, [permission, cameraRef])
+
 
   if (!permission) {
     // Camera permissions are still loading.
-    return <View />;
+    return <View />;//empty view
   }
 
   if (!permission.granted) {
@@ -21,19 +37,50 @@ export default function App() {
     );
   }
 
-  function toggleCameraFacing() {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
+  // assume we have camera permissions
+  let takePicture = async () => {
+    let options = {
+      exif: false,
+      quality: 1,
+      base64: true,
+    }
+    let newPhoto = await cameraRef.current.takePictureAsync(options);
+    //@ts-ignore
+    setPhoto(newPhoto);
+  }
+
+
+  //assume we have a photo
+  if(photo) {
+    let savePhoto = () => {
+      //@ts-ignore
+      MediaLibrary.saveToLibraryAsync(photo.uri).then(() => {
+        setPhoto(undefined);
+      });
+    }
+    
+    return(
+      <SafeAreaView style={styles.container}>
+        <Image style={styles.photoPreview} source={{ uri: "data:image/jpg;based64," + photo.base64}} />
+        {hasMediaLibraryPermissions ? <Button title="Save Photo" onPress={savePhoto} />: undefined}
+        <Button title='Trush it!' onPress={() =>  setPhoto(undefined)} />
+      </SafeAreaView>
+    )
   }
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing}>
+      <CameraView 
+        style={styles.camera}
+        ref={cameraRef}
+        >
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-            <Text style={styles.text}>Flip Camera</Text>
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.button}></TouchableOpacity>
         </View>
       </CameraView>
+      <View style={{ flex: 1}}>
+        <Button title="Take a pic!" onPress={takePicture} />
+      </View>
     </View>
   );
 }
@@ -66,4 +113,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
+  photoPreview: {
+    alignSelf: 'stretch',
+    flex: 1
+  }
 });
